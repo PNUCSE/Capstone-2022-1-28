@@ -8,5 +8,5 @@
 - [ ] 여러 대의 UWB/BLE Anchor를 배치하여 3D 위치 측정 및 오차 제어
 - [ ] 디지털트윈 공간 상 물체 위치 동기화(unity 활용)
 ---
-app.js => server 
+app.js => server  
 scene.html => 클라이언트
