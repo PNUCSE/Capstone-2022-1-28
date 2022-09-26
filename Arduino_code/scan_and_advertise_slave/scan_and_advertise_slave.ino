@@ -10,7 +10,7 @@ void setup()
   Bluefruit.setTxPower(8);    
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);  
-  Bluefruit.setName("module 123");  
+  Bluefruit.setName("module 1");  
   Bluefruit.setConnLedInterval(250);
   bleuart.begin();
   Bluefruit.setRssiCallback(rssi_changed_callback);
