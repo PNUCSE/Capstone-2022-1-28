@@ -33,12 +33,6 @@ void startAdv(void)
   Bluefruit.Advertising.setInterval(32, 244);    
   Bluefruit.Advertising.setFastTimeout(30);
   Bluefruit.Advertising.start(0);
-  Bluefruit.Advertising.stop();
-  Bluefruit.setName("module 123456789");
-  bleuart.begin();
-  Bluefruit.ScanResponse.addName();
-  Bluefruit.Advertising.addName();
-  Bluefruit.Advertising.start(0);
 }
 
 void scan_callback(ble_gap_evt_adv_report_t* report)
