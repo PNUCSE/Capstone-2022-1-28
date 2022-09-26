@@ -2,12 +2,20 @@
 #include <ArduinoJson.h>
 
 BLEUart bleuart; 
+char rssi_buffer[4];
 
+// uuid값 임의로 넣었는데 작동 되는지 테스트 필요, 안되면 찾아서 넣어야함
+BLEClientService UService(0xcba174a9aed54c2f8ea998de50b2bb38);
+BLEClientCharacteristic PeripheralModule_1(0x4007f5d26d384249b4b2c48062eaf30a);  
+BLEClientCharacteristic PeripheralModule_2(0x6d813cfd2937495dbc1be91aa6742eca);
+BLEClientCharacteristic PeripheralModule_3(0xeb00def4f7e94bb4a1d148dd87098f13);
+  
 void setup()
 {  
   Serial.begin(9600);
   while ( !Serial ) delay(10);  
-  
+
+
   Bluefruit.autoConnLed(true);
   Bluefruit.configPrphBandwidth(BANDWIDTH_MAX);
   Bluefruit.begin();
@@ -16,7 +24,13 @@ void setup()
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);  
   Bluefruit.setName("module 4");  
   Bluefruit.setConnLedInterval(250);
+  
+  UService.begin();
+  PeripheralModule_1.begin();
+  PeripheralModule_2.begin();
+  PeripheralModule_3.begin();
   bleuart.begin();
+  
   Bluefruit.setRssiCallback(rssi_changed_callback);
   Bluefruit.Scanner.setRxCallback(scan_callback);
   Bluefruit.Scanner.restartOnDisconnect(true);
@@ -52,16 +66,13 @@ void scan_callback(ble_gap_evt_adv_report_t* report)
   if(Bluefruit.Scanner.parseReportByType(report, BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME, buffer, sizeof(buffer)))
   {
     const char* peripheral_name1 = "peripheral";
-    const char* peripheral_name2 = "module ";
+    //const char* peripheral_name2 = "module ";
     
     for(int i=0; i<7; i++) {
       if(peripheral_name1[i] != buffer[i])
       {
-        if(peripheral_name2[i] != buffer[i])
-        {
-          Bluefruit.Scanner.resume();
-          return;
-        }
+        Bluefruit.Scanner.resume();
+        return;
       }
     }
     doc["name"]=buffer;
@@ -166,7 +177,23 @@ void printUuid128List(uint8_t* buffer, uint8_t len)
 
 void loop() 
 {
-  // nothing to do
+  if(Bluefruit.connected()){
+    DynamicJsonDocument doc(200);
+    int a_num = PeripheralModule_1.read32();
+    doc["name"] = "module 1";
+    doc["rssi"] = String(a_num);
+    serializeJson(doc, Serial);
+
+    int b_num = PeripheralModule_2.read32();
+    doc["name"] = "module 2";
+    doc["rssi"] = String(b_num);
+    serializeJson(doc, Serial);
+    
+    int c_num = PeripheralModule_3.read32();
+    doc["name"] = "module 3";
+    doc["rssi"] = String(c_num);
+    serializeJson(doc, Serial);
+  }
 }
 
 void connect_callback(uint16_t conn_handle)

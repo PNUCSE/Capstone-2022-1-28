@@ -2,6 +2,12 @@
 #include <ArduinoJson.h>
 
 BLEUart bleuart; 
+char rssi_buffer[4];
+
+// uuid값 임의로 넣었는데 작동 되는지 테스트 필요, 안되면 찾아서 넣어야함
+BLEService UService(0xcba174a9aed54c2f8ea998de50b2bb38);
+BLECharacteristic PeripheralModule_1(0x4007f5d26d384249b4b2c48062eaf30a);  
+
 void setup()
 {  
   Bluefruit.autoConnLed(true);
@@ -10,9 +16,16 @@ void setup()
   Bluefruit.setTxPower(8);    
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);  
-  Bluefruit.setName("module 123");  
+  Bluefruit.setName("module 1");  
   Bluefruit.setConnLedInterval(250);
+  
+  UService.begin();
+
+  PeripheralModule_1.setProperties(CHR_PROPS_READ | CHR_PROPS_WRITE);
+  PeripheralModule_1.setPermission(SECMODE_OPEN, SECMODE_OPEN);
+  PeripheralModule_1.begin();
   bleuart.begin();
+  
   Bluefruit.setRssiCallback(rssi_changed_callback);
   Bluefruit.Scanner.setRxCallback(scan_callback);
   Bluefruit.Scanner.restartOnDisconnect(true);
@@ -32,12 +45,6 @@ void startAdv(void)
   Bluefruit.Advertising.restartOnDisconnect(true);
   Bluefruit.Advertising.setInterval(32, 244);    
   Bluefruit.Advertising.setFastTimeout(30);
-  Bluefruit.Advertising.start(0);
-  Bluefruit.Advertising.stop();
-  Bluefruit.setName("module 123456789");
-  bleuart.begin();
-  Bluefruit.ScanResponse.addName();
-  Bluefruit.Advertising.addName();
   Bluefruit.Advertising.start(0);
 }
 
@@ -63,7 +70,8 @@ void scan_callback(ble_gap_evt_adv_report_t* report)
       }
     }
     doc["name"]=buffer;
-    
+    PeripheralModule_1.write32(report->rssi);
+    Serial.println(report->rssi);
     memset(buffer, 0, sizeof(buffer));
   }
   else
