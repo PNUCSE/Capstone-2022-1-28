@@ -1,97 +1,116 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content = "width=device-width, initial-scale=1.0">
-		<title>웹소켓 테스트</title>
-		<style>
-			body { margin: 0; }
-			canvas { display: block; }
-		</style>
-	</head>
-	<body>
-		<h1> 웹소켓 테스트</h1>
-		<button id="btn_send">메세지 전송</button>
-		<button id="btn_close">연결 끊기 </button>
-		<script src="https://threejs.org/build/three.js"></script>
 
-		<script>
-			const webSocket = new WebSocket("ws://10.125.70.118:80");
-			let count = 1;
-			let coord = [0,0,0];
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>웹소켓 테스트</title>
+	<style>
+		body {
+			margin: 0;
+		}
 
-			document.getElementById("btn_send").onclick = function(){
+		canvas {
+			display: block;
+		}
+	</style>
+</head>
 
-			if(webSocket.readyState === webSocket.OPEN){ // 연결 상태 확인
-					webSocket.send(`증가하는 숫자를 보냅니다 => ${count}`); // 웹소켓 서버에게 메시지 전송
-					count++; // 보낼때마다 숫자를 1씩 증가
+<body>
+	<h1> 웹소켓 테스트</h1>
+	<button id="btn_send">메세지 전송</button>
+	<button id="btn_close">연결 끊기 </button>
+	<script src="https://threejs.org/build/three.js"></script>
 
-			}else{
-					alert("연결된 웹소켓 서버가 없습니다.");
-				}
+	<script>
+		const webSocket = new WebSocket("ws://10.125.70.118:80");
+		let coord = [0, 0, 0];
+
+		document.getElementById("btn_send").onclick = function () {
+
+			if (webSocket.readyState === webSocket.OPEN) { // 연결 상태 확인
+				webSocket.send(0); // 웹소켓 서버에게 메시지 전송
+			} else {
+				alert("연결된 웹소켓 서버가 없습니다.");
 			}
+		}
 
-			
-			document.getElementById("btn_close").onclick = function(){
 
-				if(webSocket.readyState === webSocket.OPEN){ // 연결 상태 확인
-						webSocket.close(); // 연결 종료
-
-				}else{
-						alert("연결된 웹소켓 서버가 없습니다.");
-				}
+		setInterval(function () {
+			if (webSocket.readyState === webSocket.OPEN) { // 연결 상태 확인
+				webSocket.send(0); // ping
+			} else {
+				alert("연결된 웹소켓 서버가 없습니다.");
 			}
+		}, 100);
 
-			
-			webSocket.onopen = () => {
-			    	console.log("웹소켓 서버와 연결 성공");
-			};
 
-			webSocket.onmessage = function (event) {
-				// coord = event.data;
-				var data = event.data.split(',');
-				for(var i=0; i<3; i++) {
-					coord[i] = data[i]
-					console.log(coord[i]);
-				}
-				console.log(`수신 데이터 : ${event.data}`);
-			};
+		document.getElementById("btn_close").onclick = function () {
 
-			webSocket.onclose = function () {
-				console.log("웹소켓 서버 연결 종료");
-			};
+			if (webSocket.readyState === webSocket.OPEN) { // 연결 상태 확인
+				webSocket.close(); // 연결 종료
 
-			webSocket.onerror = function(event) {
-				console.log(event);
-			
+			} else {
+				alert("연결된 웹소켓 서버가 없습니다.");
 			}
+		}
 
-			const scene = new THREE.Scene();
-			const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
-			const renderer = new THREE.WebGLRenderer();
-			renderer.setSize( window.innerWidth, window.innerHeight );
-			document.body.appendChild( renderer.domElement );
+		webSocket.onopen = () => {
+			console.log("웹소켓 서버와 연결 성공");
+		};
 
-			const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-			const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-			const cube = new THREE.Mesh( geometry, material );
-			scene.add( cube );
+		webSocket.onmessage = function (event) {
+			// coord = event.data;
+			var data = event.data.split(',');
+			for (var i = 0; i < 3; i++) {
+				coord[i] = data[i]
+			}
+			console.log(`수신 좌표 : ${event.data}`);
+		};
 
-			camera.position.z = 5;
+		webSocket.onclose = function () {
+			console.log("웹소켓 서버 연결 종료");
+		};
 
-			function animate() {
-				requestAnimationFrame( animate );
+		webSocket.onerror = function (event) {
+			console.log(event);
 
-				// cube.rotation.x += 0.01;
-				// cube.rotation.y += 0.01;
-				cube.position.x = Number(coord[0])*0.05;
-				cube.position.y = Number(coord[1])*0.05;
-				cube.position.z = Number(coord[2])*0.05;
-				renderer.render( scene, camera );
-			};
+		}
 
-			animate();
-		</script>
-	</body>
+		const scene = new THREE.Scene();
+		const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+		scene.add(camera);
+		const renderer = new THREE.WebGLRenderer();
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		document.body.appendChild(renderer.domElement);
+
+		const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+		const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+		const cube = new THREE.Mesh(geometry, material);
+		scene.add(cube);
+		scene.background = new THREE.Color(0xffffff);
+
+
+		const axesHelper = new THREE.AxesHelper(5);
+		scene.add(axesHelper);
+
+		camera.position.z = 5;
+		camera.position.x = 1;
+		camera.position.y = 1;
+
+		function animate() {
+			requestAnimationFrame(animate);
+
+			cube.position.x = Number(coord[0]);
+			cube.position.y = Number(coord[1]);
+			cube.position.z = Number(coord[2]);
+			renderer.render(scene, camera);
+		};
+
+		animate();
+
+	</script>
+</body>
+
 </html>
