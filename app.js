@@ -7,18 +7,14 @@ var fs = require('fs')
 const { SerialPort, ReadlineParser } = require('serialport');
 const KalmanFilter = require('kalmanjs');
 
-const module1 = new KalmanFilter();
-const module2 = new KalmanFilter();
-const module3 = new KalmanFilter();
-const module4 = new KalmanFilter();
-
 // Hard coded Co-ordinates
-var coord = [[10,10,3],[-10,-10,2],[7,5,1],[-6,-8,4]]
+var coord = [[10, 10, 3], [-10, -10, 2], [7, 5, 1], [-6, -8, 4]]
+// 실제 거리
+var dist = [0, 0, 0, 0]
 
 // 기준거리(1m)에서의 신호 세기
-const rssi_0 = -47.18641666102252
+const rssi_0 = -47.18641666102252;
 
-var dist = [0,0,0,0]
 
 const port = new SerialPort({
 	path: 'COM11',
@@ -46,45 +42,79 @@ webSocketServer.on('connection', (ws, request) => {
 	const ip = request.headers['x-forwarded-for'] || request.connection.remoteAddress;
 	console.log(`새로운 클라이언트[${ip}] 접속`);
 
-	// if (ws.readyState === ws.OPEN) {
-	// 	ws.send(`클라이언트[${ip}] 접속을 환영합니다 from 서버`);
-	// }
+	var prev_rssi_list = new Array();
+	var module_list = new Array();
+	var rssi_sum = new Array();
+	var prev_val = 0;
+
+	for (var i = 0; i < 4; i++) {
+		prev_rssi_list[i] = new Array();
+		module_list[i] = new KalmanFilter(-50, 3);
+		rssi_sum[i] = 0;
+	}
 
 	parser.on('data', function (data) {
 		console.log('Origin Data:', data);
 		var obj = JSON.parse(data);
 		var filtered_rssi;
-		if(obj.name == 'PE1') {
-			filtered_rssi = module1.filter(obj.rssi);
-			dist[0] = Distance(filtered_rssi);
-		} else if(obj.name == 'PE2') {
-			filtered_rssi = module2.filter(obj.rssi);
-			dist[1] = Distance(filtered_rssi);
-		} else if(obj.name == 'PE3') {
-			filtered_rssi = module3.filter(obj.rssi);
-			dist[2] = Distance(filtered_rssi);
-		} else if(obj.name == 'TAG') {
-			filtered_rssi = module4.filter(obj.rssi);
-			dist[3] = Distance(filtered_rssi);
+		console.log(obj.val);
+		var flag;
+		var cur_val = Number(obj.val);
+		if(prev_val>=cur_val) {
+			prev_val = 0;
+			return;
 		}
+		prev_val = cur_val;
+		if (obj.name == 'PE1') {
+			flag = 0;
+		} else if (obj.name == 'PE2') {
+			flag = 1;
+		} else if (obj.name == 'PE3') {
+			flag = 2;
+		} else if (obj.name == 'TAG') {
+			flag = 3;
+		}
+
+		if(obj.name == 'TAG') {
+			fs.appendFile('4m_json_9.txt' , data+'\n', (err) => console.log(err));
+			fs.appendFile('4m_RSSI_9.txt' , obj.rssi+'\n', (err) => console.log(err));
+		}
+		
+
+		if(prev_rssi_list[flag].length < 80) {
+			filtered_rssi = module_list[flag].filter(obj.rssi);
+			prev_rssi_list[flag].push(filtered_rssi);
+			rssi_sum[flag] = rssi_sum[flag]*0.8 + filtered_rssi;
+			return;
+		}
+
+
+		// outlier
+		if(obj.rssi < rssi_sum[flag] / 5 - 3 || obj.rssi > rssi_sum[flag] / 5 + 3) {
+			return;
+		}
+		filtered_rssi = module_list[flag].filter(obj.rssi);
+		rssi_sum[flag] = (rssi_sum[flag] * 0.8 + filtered_rssi);
+		
+		// Calculate 3D-Position
 		var ret = calculate(coord, dist)
 		ret[0] = ret[0].toFixed(2);
 		ret[1] = ret[1].toFixed(2);
 		ret[2] = ret[2].toFixed(2);
 		console.log('Parsed:', ret);
+		console.log('rssi_average:', rssi_sum[flag] / 5);
 		ws.send(`${ret[0]},${ret[1]},${ret[2]}`);
 
-		// if(obj.name == 'TAG') {
-		// 	fs.appendFile('TAG_DIST_2m.txt' , dist[3]+'\n', (err) => console.log(err));
-		// }
-		// if(obj.name == 'TAG') {
-		// 	fs.appendFile('TAG_RSSI_1m.txt' , filtered_rssi+'\n', (err) => console.log(err));
-		// }
-		if(obj.name == 'PE2') {
-			fs.appendFile('PE2_rssi_1m.txt' , obj.rssi+'\n', (err) => console.log(err));
-			fs.appendFile('PE2_filtered_rssi_1m.txt' , filtered_rssi+'\n', (err) => console.log(err));
+		
+		if(obj.name == 'TAG') {
+			fs.appendFile('4m_FILTERED_RSSI_9.txt' , filtered_rssi+'\n', (err) => console.log(err));
 		}
+		// if (obj.name == 'PE2') {
+		// 	fs.appendFile('PE2_rssi_1m.txt', obj.rssi + '\n', (err) => console.log(err));
+		// 	fs.appendFile('PE2_filtered_rssi_1m.txt', filtered_rssi + '\n', (err) => console.log(err));
+		// }
 	});
+
 
 	// ws.on('message', (msg) => {
 	// 	console.log(`클라이언트[${ip}]에게 수신한 메시지 : ${msg}`);
@@ -124,6 +154,6 @@ function calculate(coord, distances) {
 }
 
 function Distance(rssi) {
-	return 10**((rssi_0-Number(rssi))/10/2)
+	return 10 ** ((rssi_0 - Number(rssi)) / 10 / 2);
 }
 
