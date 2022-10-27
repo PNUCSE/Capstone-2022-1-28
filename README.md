@@ -11,9 +11,9 @@
 
 안현기, tykr0001@pusan.ac.kr, 개발총괄
 
-김춘수, spiderman@marvel.com, 알고리즘 설계
+김춘수, junjun333@pusan.ac.kr, 센서간 통신 구현
 
-이현진, doctorstrange@marvel.com, 백앤드 개발
+이현진, lighthyun19@pusan.ac.kr, 알고리즘 설계
 
 ### 3. 시스템 구성도
 
